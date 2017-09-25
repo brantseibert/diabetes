@@ -1,0 +1,295 @@
+// Databricks notebook source
+// MAGIC %md ## Import Libraries
+
+// COMMAND ----------
+
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.streaming._
+import org.apache.spark.sql.types._
+
+// COMMAND ----------
+
+// MAGIC %md ## Define Schemas
+
+// COMMAND ----------
+
+val schema = new StructType()
+  .add("dc_id", StringType)                               // data center where data was posted to Kafka cluster
+  .add("source",                                          // info about the source of alarm
+    MapType(                                              // define this as a Map(Key->value)
+      StringType,
+      new StructType()
+      .add("description", StringType)
+      .add("ip", StringType)
+      .add("id", LongType)
+      .add("temp", LongType)
+      .add("c02_level", LongType)
+      .add("geo", 
+         new StructType()
+          .add("lat", DoubleType)
+          .add("long", DoubleType)
+        )
+      )
+    )
+
+// COMMAND ----------
+
+val myJsonSchema = StructType(
+            StructField("id", LongType, false) ::
+            StructField("today", DateType, false) ::
+            StructField("now", TimestampType, false) :: Nil)
+
+// COMMAND ----------
+
+// MAGIC %md ## Create Input and Output Paths
+
+// COMMAND ----------
+
+val inputPath = "/mnt/ai-patient-details/fullDataTest/"
+val checkpointPath = "/mnt/ai-patient-details/fullDataTestCheckpoint/"
+val jsonOutputPath = "/mnt/ai-patient-details/fullDataTestParquet/"
+val parquetOutputPath = "/mnt/ai-patient-details/fullDataTestParquet/"
+
+// COMMAND ----------
+
+// MAGIC %md ## Write Files
+
+// COMMAND ----------
+
+//dbutils.fs.mkdirs("/ai-Test/")
+//dateDF.write.json("/ai-Test/myTest.json")
+//display(dbutils.fs.ls("dbfs:/ai-Test/myTest.json/"))
+//import scala.io.Source
+  //val filename = "dbfs:/ai-Test/myTest.json/part-00000-tid-8901156661693115501-09a33ec4-e6b8-455b-a808-9e5f828e2038-0-c000.json"
+
+// COMMAND ----------
+
+// MAGIC %md ## Demo Patient Status Alert Class
+
+// COMMAND ----------
+
+// define a Scala Notification Object
+object patientStatusAlerts {
+
+  def sendRedAlert(message: String): Unit = {
+    //TODO: fill as necessary
+    println("Red Alert:" + message)
+  }
+
+  def sendYellowAlert(message: String): Unit = {
+    //TODO: fill as necessary
+    println("Yelow Alert:" + message)
+  }
+  
+  def sendGreenStatus(message: String): Unit = {
+    //TODO: fill as necessary
+     println("Green, relax:" + message)
+  }
+}
+
+//Call this class to send an alert
+def myAlertDemo(patientName: java.io.PrintStream = Console.out, patientStatus: PatientAlert, alert: String): Unit = {
+  val message = "[***ALERT***: %s; patient_name: %s, patient_status: %s, patient_lat: %s, patient_lon: %s]" 
+    format(alert, myAlert.pt_fname, myAlert.pt_status, myAlert.pt_lat, myAlert.pt_lon)                                  
+  
+  //default log to Stderr/Stdout
+  log.println(message)
+  
+  // use an appropriate notification method
+  val notifyFunc = notify match {
+      case "red" => DeviceNOCAlerts.sendTwilio _
+      case "yellow" => DeviceNOCAlerts.sendSNMP _
+      case "green" => DeviceNOCAlerts.sendKafka _
+  }
+  //send the appropriate alert
+  notifyFunc(message)
+}
+
+// COMMAND ----------
+
+// MAGIC %md ### Create Random
+
+// COMMAND ----------
+
+val r = scala.util.Random
+r.setSeed(100)
+val myRandom = r.nextFloat
+
+// COMMAND ----------
+
+// MAGIC %fs ls /mnt/ai-patient-details/fullDataTest/
+
+// COMMAND ----------
+
+val myTest = sqlContext.read.json("/mnt/ai-patient-details/fullDataTest/1488411469513.json")
+myTest.show
+
+// COMMAND ----------
+
+import org.apache.spark.sql.functions._
+val myDF = sqlContext.read.json("/mnt/ai-patient-details/fullDataTest/1488411469513.json")
+val myDfToWriteToS3 = myDF
+  .withColumn("Alert", when(myDF("Carbs") < 1, "Red").when(myDF("Carbs") < 20, "Yellow").otherwise("Green"))
+  .withColumn("Lat", when(myDF("Username") === "patient1", "39.75598462"))
+  .withColumn("Long", when(myDF("Username") === "patient1", "-104.92489374"))
+
+// COMMAND ----------
+
+// MAGIC %fs ls /aTest/Test2/
+
+// COMMAND ----------
+
+val thisJson = "/aTest/Test2/part-00000-tid-5861329335995492005-8f52bf1f-f49c-4e28-853d-163e254d559c-0-c000.json"
+
+// COMMAND ----------
+
+case class DeviceIoTData (
+  Basal: Double,
+  Bolus: Long,
+  Carbs: Long,
+  Date: Long,
+  Glucose: Double,
+  Username: String,
+  Alert: String,
+  Lat: String,
+  Long: String)
+
+// COMMAND ----------
+
+val ds = spark.read.json(thisJson).as[DeviceIoTData]
+
+// COMMAND ----------
+
+ds.createOrReplaceTempView("iot_device_data")
+
+// COMMAND ----------
+
+// MAGIC %sql select Lat, Long from iot_device_data
+
+// COMMAND ----------
+
+val thisSchema = myDfToWriteToS3.schema
+
+// COMMAND ----------
+
+myDfToWriteToS3.write.json("/aTest/Test2/")
+
+// COMMAND ----------
+
+// MAGIC %md ### Select A Patient
+
+// COMMAND ----------
+
+// MAGIC %sql SELECT * FROM patients2 LIMIT 1
+
+// COMMAND ----------
+
+// MAGIC %md ### Create Timestamp
+
+// COMMAND ----------
+
+import org.apache.spark.sql.functions.{current_date, current_timestamp}
+val dateDF = spark.range(10).withColumn("today", current_date()).withColumn("now", current_timestamp())
+
+// COMMAND ----------
+
+// MAGIC %md ### Generate Raw Records
+
+// COMMAND ----------
+
+val dateDF = spark.range(10)
+  .withColumn("today", current_date())
+  .withColumn("now", current_timestamp())
+
+// COMMAND ----------
+
+// MAGIC %md ### Ingest Raw Records
+
+// COMMAND ----------
+
+val rawRecords = spark.readStream
+  .option("maxFilesPerTrigger", "100")
+  .schema(cloudTrailSchema)
+  .json(cloudTrailLogsPath)
+
+// COMMAND ----------
+
+// MAGIC %md ### Explode Raw Records
+
+// COMMAND ----------
+
+val cloudTrailEvents = rawRecords
+  .select(explode($"Records") as "record")
+  .select(
+    unix_timestamp($"record.eventTime", "yyyy-MM-dd'T'hh:mm:ss").cast("timestamp") as "timestamp",
+    $"record.*")
+
+// COMMAND ----------
+
+// MAGIC %md ### get_json_object() ---- https://docs.databricks.com/_static/notebooks/complex-nested-structured.html
+
+// COMMAND ----------
+
+//Pulls fields from the json column of a two column table (col("id"), col("json"))
+//{"device_id": 0, "device_type": "sensor-ipad", "ip": "68.161.225.1", "cca3": "USA", "cn": "United States", "temp": 25, "signal": 23, "battery_level": 8, "c02_level": 917, "timestamp" :1475600496 }
+val jsDF = eventsFromJSONDF.select($"id", get_json_object($"json", "$.device_type").alias("device_type"),
+                                          get_json_object($"json", "$.ip").alias("ip"),
+                                         get_json_object($"json", "$.cca3").alias("cca3"))
+
+// COMMAND ----------
+
+// MAGIC %md ### from_json()
+
+// COMMAND ----------
+
+val devicesDF = eventsDS.select(from_json($"device", jsonSchema) as "devices")
+.select($"devices.*")
+.filter($"devices.temp" > 10 and $"devices.signal" > 15)
+
+// COMMAND ----------
+
+// MAGIC %md ### to_json()
+
+// COMMAND ----------
+
+//creates a single column of string in json format
+val stringJsonDF = eventsDS.select(to_json(struct($"*"))).toDF("devices") 
+
+// COMMAND ----------
+
+// MAGIC %md ### Write to Parquet
+
+// COMMAND ----------
+
+val checkpointPath = "/cloudtrail.checkpoint/"
+
+val streamingETLQuery = cloudTrailEvents
+  .withColumn("date", $"timestamp".cast("date")) 
+  .writeStream
+  .format("parquet")
+  .option("path", parquetOutputPath)
+  .partitionBy("date")
+  .trigger(ProcessingTime("10 seconds"))
+  .option("checkpointLocation", checkpointPath)
+  .start()
+
+// COMMAND ----------
+
+// MAGIC %md ## Case Class Transforms DF to DS
+
+// COMMAND ----------
+
+//Case Class adds the Type to Dataframes
+case class DeviceAlert(dcId: String, deviceType:String, ip:String, deviceId:Long, temp:Long, c02_level: Long, lat: Double, lon: Double)
+//access all values using getItem() method on value, by providing the "key," which is attribute in our JSON object.
+val notifydevicesDS = explodedDF.select( $"dc_id" as "dcId",
+                        $"key" as "deviceType",
+                        'value.getItem("ip") as 'ip,
+                        'value.getItem("id") as 'deviceId,
+                        'value.getItem("c02_level") as 'c02_level,
+                        'value.getItem("temp") as 'temp,
+                        'value.getItem("geo").getItem("lat") as 'lat,                //note embedded level requires yet another level of fetching.
+                        'value.getItem("geo").getItem("long") as 'lon)
+                        .as[DeviceAlert]  // return as a Dataset
+
+// COMMAND ----------
