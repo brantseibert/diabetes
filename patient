@@ -1,0 +1,51 @@
+import org.apache.spark.sql.types._
+
+//Define the schema for the Patient entity.  The patient includes information to identify the patient, 
+// allow care providors to go to the patient location, and to monitor the status of the patient network.
+val schema = new StructType()
+  .add("gateway_id", StringType)                          // home IoT gateway
+  .add("patient_id", StringType)                          // patient ID
+  .add("patient_history",
+    new StructType()
+      .add("patient", MapType(StringType,
+        new StructType()
+          .add("last_name",	StringType)
+          .add("first_name",	StringType)
+          .add("dob",	StringType)
+          .add("ssn",	StringType)
+          .add("street",	StringType)
+          .add("city",	StringType)
+          .add("state",	StringType)
+          .add("country",	StringType)
+          .add("zip",	StringType)
+          .add("phone",	StringType)
+          .add("location",	StringType)
+      )
+    )
+  )
+  .add("device",                                          // physical device description
+    MapType(                                              // define this as a Map(Key->value)
+      StringType,
+      new StructType()
+      .add("description", StringType)
+      .add("ip", StringType)
+      .add("id", LongType)
+      .add("geo", 
+         new StructType()
+          .add("lat", DoubleType)
+          .add("long", DoubleType)
+        )
+      )
+    )
+  .add("environment",                                          // info about the environment
+    MapType(                                              // define this as a Map(Key->value)
+      StringType,
+      new StructType()
+      .add("temp", LongType)
+      .add("location", 
+         new StructType()
+          .add("description", StringType)
+          .add("buildingType", StringType)
+        )
+      )
+    )
