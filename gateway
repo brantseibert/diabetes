@@ -1,0 +1,69 @@
+import org.apache.spark.sql.types._
+
+//Identify the gateway and define the schema.  A function was subsequently developed for defining the schema in-line with gatewayDeviceDF.printSchema
+val schema = new StructType()
+  .add("gateway_id", StringType)                          // home IoT gateway
+  .add("device",                                          // physical device description
+    MapType(                                              // define this as a Map(Key->value)
+      StringType,
+      new StructType()
+      .add("description", StringType)
+      .add("ip", StringType)
+      .add("id", LongType)
+      .add("geo", 
+         new StructType()
+          .add("lat", DoubleType)
+          .add("long", DoubleType)
+        )
+      )
+    )
+  .add("environment",                                          // info about the environment
+    MapType(                                              // define this as a Map(Key->value)
+      StringType,
+      new StructType()
+      .add("temp", LongType)
+      .add("c02_level", LongType)
+      .add("location", 
+         new StructType()
+          .add("description", StringType)
+          .add("buildingType", StringType)
+        )
+      )
+    )
+    
+//Generate alerts to be sent to the patient's care providor.
+object patientStatusAlerts {
+
+  def sendRedStatus(message: String): Unit = {
+    //TODO: fill as necessary
+    println("Red Alert:" + message)
+  }
+
+  def sendYellowStatus(message: String): Unit = {
+    //TODO: fill as necessary
+    println("Yelow Alert:" + message)
+  }
+  
+  def sendGreenStatus(message: String): Unit = {
+    //TODO: fill as necessary
+     println("Green, relax:" + message)
+  }
+}
+
+//Call this class to send an alert
+def myAlertDemo(patientName: java.io.PrintStream = Console.out, patientStatus: PatientAlert, alert: String): Unit = {
+  val message = "[***ALERT***: %s; patient_name: %s, patient_status: %s, patient_lat: %s, patient_lon: %s]" 
+    format(alert, myAlert.pt_fname, myAlert.pt_status, myAlert.pt_lat, myAlert.pt_lon)                                  
+  
+  //default log to Stderr/Stdout
+  log.println(message)
+  
+  // use an appropriate notification method
+  val notifyFunc = notify match {
+      case "red" => DeviceNOCAlerts.sendTwilio _
+      case "yellow" => DeviceNOCAlerts.sendSNMP _
+      case "green" => DeviceNOCAlerts.sendKafka _
+  }
+  //send the appropriate alert
+  notifyFunc(message)
+}
