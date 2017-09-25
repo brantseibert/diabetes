@@ -1,0 +1,58 @@
+
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+
+//Hard code the schema for this test. We subsequently created a function which reads the schema with jsonFileDF.printSchema.
+val jsonSchema = StructType(
+            StructField("Username", StringType, true) ::
+            StructField("Carbs", IntegerType, true) ::
+            StructField("Bolus", IntegerType, true) ::
+            StructField("Basal", FloatType, true) ::
+            StructField("Date", LongType, true) ::
+            StructField("Glucose", FloatType, true) :: Nil)
+
+//The actual paths are not published here on GitHub
+val inputPath = "/mnt/..."
+val checkpointPath = "/mnt/..."
+val parquetOutputPath = "/mnt/..."
+
+//To test this function as a unit, we use .option to simulate a json file stream.
+val streamingInputDF = 
+  spark
+    .readStream
+    .schema(jsonSchema)
+    .option("maxFilesPerTrigger", 1)
+    .json(inputPath)
+
+//Create aggregation DataFrame
+val streamingCountsDF = 
+  streamingInputDF
+    .groupBy($"Glucose", $"Date")
+    .count()
+
+//Confirm that the stream exists.
+streamingCountsDF.isStreaming 
+
+//Define Parquet partitions to store the results from the stream.
+spark.conf.set("spark.sql.shuffle.partitions", "1")
+
+//Write the stream to memory and create a SQL query handle.
+val query =
+  streamingInputDF
+    .writeStream
+    .format("memory")
+    .queryName("patientDetails")
+    //.outputMode("complete")
+    .start()
+
+//Create a separate SQL view
+streamingInputDF.createOrReplaceTempView("df2")
+
+//Display the streaming results.
+display(streamingInputDF)
+
+//Create another graphic to display a count of selected features.
+%sql SELECT count(*) FROM df2 
+
+//Create another graphic to display selected features as an updating glucose count.
+%sql SELECT COUNT(Glucose), AVG(Glucose), MAX(Glucose), MIN(Glucose) FROM df2 
