@@ -45,10 +45,10 @@ val myJsonSchema = StructType(
 
 // COMMAND ----------
 
-val inputPath = "/mnt/ai-patient-details/fullDataTest/"
-val checkpointPath = "/mnt/ai-patient-details/fullDataTestCheckpoint/"
-val jsonOutputPath = "/mnt/ai-patient-details/fullDataTestParquet/"
-val parquetOutputPath = "/mnt/ai-patient-details/fullDataTestParquet/"
+val inputPath = "..."
+val checkpointPath = "..."
+val jsonOutputPath = "..."
+val parquetOutputPath = "..."
 
 // COMMAND ----------
 
@@ -56,12 +56,11 @@ val parquetOutputPath = "/mnt/ai-patient-details/fullDataTestParquet/"
 
 // COMMAND ----------
 
-//dbutils.fs.mkdirs("/ai-Test/")
-//dateDF.write.json("/ai-Test/myTest.json")
-//display(dbutils.fs.ls("dbfs:/ai-Test/myTest.json/"))
+//dbutils.fs.mkdirs("...")
+//dateDF.write.json("...")
+//display(dbutils.fs.ls("dbfs:..."))
 //import scala.io.Source
-  //val filename = "dbfs:/ai-Test/myTest.json/part-00000-tid-8901156661693115501-09a33ec4-e6b8-455b-a808-9e5f828e2038-0-c000.json"
-
+  //val filename = "dbfs:..."
 // COMMAND ----------
 
 // MAGIC %md ## Demo Patient Status Alert Class
@@ -117,17 +116,17 @@ val myRandom = r.nextFloat
 
 // COMMAND ----------
 
-// MAGIC %fs ls /mnt/ai-patient-details/fullDataTest/
+// MAGIC %fs ls /mnt...
 
 // COMMAND ----------
 
-val myTest = sqlContext.read.json("/mnt/ai-patient-details/fullDataTest/1488411469513.json")
+val myTest = sqlContext.read.json("...")
 myTest.show
 
 // COMMAND ----------
 
 import org.apache.spark.sql.functions._
-val myDF = sqlContext.read.json("/mnt/ai-patient-details/fullDataTest/1488411469513.json")
+val myDF = sqlContext.read.json("...")
 val myDfToWriteToS3 = myDF
   .withColumn("Alert", when(myDF("Carbs") < 1, "Red").when(myDF("Carbs") < 20, "Yellow").otherwise("Green"))
   .withColumn("Lat", when(myDF("Username") === "patient1", "39.75598462"))
@@ -135,11 +134,11 @@ val myDfToWriteToS3 = myDF
 
 // COMMAND ----------
 
-// MAGIC %fs ls /aTest/Test2/
+// MAGIC %fs ls ...
 
 // COMMAND ----------
 
-val thisJson = "/aTest/Test2/part-00000-tid-5861329335995492005-8f52bf1f-f49c-4e28-853d-163e254d559c-0-c000.json"
+val thisJson = "..."
 
 // COMMAND ----------
 
@@ -172,7 +171,7 @@ val thisSchema = myDfToWriteToS3.schema
 
 // COMMAND ----------
 
-myDfToWriteToS3.write.json("/aTest/Test2/")
+myDfToWriteToS3.write.json("...")
 
 // COMMAND ----------
 
@@ -231,7 +230,7 @@ val cloudTrailEvents = rawRecords
 // COMMAND ----------
 
 //Pulls fields from the json column of a two column table (col("id"), col("json"))
-//{"device_id": 0, "device_type": "sensor-ipad", "ip": "68.161.225.1", "cca3": "USA", "cn": "United States", "temp": 25, "signal": 23, "battery_level": 8, "c02_level": 917, "timestamp" :1475600496 }
+//{"device_id": 0, "device_type": "sensor-ipad", "ip": "...", "cca3": "USA", "cn": "United States", "temp": 25, "signal": 23, "battery_level": 8, "c02_level": 917, "timestamp" :1475600496 }
 val jsDF = eventsFromJSONDF.select($"id", get_json_object($"json", "$.device_type").alias("device_type"),
                                           get_json_object($"json", "$.ip").alias("ip"),
                                          get_json_object($"json", "$.cca3").alias("cca3"))
