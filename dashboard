@@ -2,7 +2,7 @@
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
-//Hard code the schema for this test. We subsequently created a function which reads the schema with jsonFileDF.printSchema.
+//Hard coded schema matching the schema of the IoT device which generates the JSON stream.
 val jsonSchema = StructType(
             StructField("Username", StringType, true) ::
             StructField("Carbs", IntegerType, true) ::
@@ -11,12 +11,12 @@ val jsonSchema = StructType(
             StructField("Date", LongType, true) ::
             StructField("Glucose", FloatType, true) :: Nil)
 
-//The actual paths are not published here on GitHub
-val inputPath = "/mnt/..."
-val checkpointPath = "/mnt/..."
-val parquetOutputPath = "/mnt/..."
+//We read JSON data from either a Kafka source or files sitting temporarily in a bucket on S3.
+val inputPath = "..."
+val checkpointPath = "..."
+val parquetOutputPath = "..."
 
-//To test this function as a unit, we use .option to simulate a json file stream.
+//To test this function as a unit, we use .option("maxFilesPerTrigger", 1) to simulate a json file stream.
 val streamingInputDF = 
   spark
     .readStream
