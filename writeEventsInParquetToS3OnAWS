@@ -1,9 +1,9 @@
 // Databricks notebook source
-display(dbutils.fs.ls("dbfs:/mnt/ai-patient-details/DiabetesPatients/patient1/Intermediate/testParquet/"))
+display(dbutils.fs.ls("..."))
 
 // COMMAND ----------
 
-val path = "dbfs:/mnt/ai-patient-details/DiabetesPatients/patient1/Intermediate/testParquet/"
+val path = "..."
 val parquetDF = spark.read.parquet(path)
 parquetDF.printSchema()
 
@@ -23,12 +23,12 @@ def createParquetEvents(number: String)(f: => Unit) {
 createParquetEvents("10") {
   //val sysTime = System.nanoTime
   //jsonDF.write.mode("append").json("{/"Username": "patient1", "Carbs": 55, "Bolus": 7.857142857142857, "Basal": 1.3, "Date": 1489003399, "Glucose": 120.0}")
-  parquetDF.write.mode("append").parquet("dbfs:/mnt/ai-patient-details/DiabetesPatients/patient1/Intermediate/testParquet")
+  parquetDF.write.mode("append").parquet("...")
 }
 
 // COMMAND ----------
 
-val path = "dbfs:/mnt/ai-patient-details/DiabetesPatients/patient1/Intermediate/"
+val path = "..."
 val jsonDF = spark.read.json(path)
 jsonDF.printSchema()
 
